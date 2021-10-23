@@ -20,7 +20,8 @@ The XML documents need to be parsed and requires the following steps:
 
 ```
 cd Phrase-Extractor-using-KeyBERT/src
-python3 parser.py
+pip install bs4 absl-py
+python parser.py
 ```
 Note: Download and parsing should be done before building the docker image (~1 hour depends on Sys config)
 
