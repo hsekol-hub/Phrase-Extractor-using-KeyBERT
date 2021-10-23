@@ -15,6 +15,36 @@ generate a meaningful ordering of the top-30 key phrases also for every document
 ## Dataset 
 - [Download](https://databricksexternal.blob.core.windows.net/hiring/patents.zip?sp=r&st=2021-10-07T23:09:03Z&se=2021-10-31T08:09:03Z&spr=https&sv=2020-08-04&sr=b&sig=uR36HP3kCEDY9aPc0mvZFzLnblodA9adxQRTYTc6O6M%3D)
 
+### Environment variables & installations
+1. First, clone repository and then run the following commands
+```
+cd Phrase-Extractor-using-KeyBERT
+docker build -f Dockerfile -t docker_key_extractor .
+```
+2. Once the docker image is built successfully and python library installations are successful.
+```
+docker run -ti docker_key_extractor
+```
+3. Activate the virtual environment
+```
+source /venv/bin/activate
+```
+4. If parsing XML document is required, then download the [file](https://databricksexternal.blob.core.windows.net/hiring/patents.zip?sp=r&st=2021-10-07T23:09:03Z&se=2021-10-31T08:09:03Z&spr=https&sv=2020-08-04&sr=b&sig=uR36HP3kCEDY9aPc0mvZFzLnblodA9adxQRTYTc6O6M%3D) and unzip (patents file) it in directory Phrase-Extractor-using-KeyBERT/data.
+Note: downloading should be done before building docker image
+```
+cd KPE/src
+python3 parser.py
+```
+5. If parsing is already done or Phrase-Extractor-using-KeyBERT/data/raw is available, run the following
+```
+cd KPE/src
+python3 keyBERT.py 
+```
+optionally as provided in flags description in keyBERT.py
+```
+python3 keyBERT.py --model_name [model name] 
+```
+
 
 ## Solution
 
