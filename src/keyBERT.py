@@ -95,8 +95,8 @@ def main(argv):
     processed_dir = os.path.join(root_dir, 'processed')
     os.chdir(processed_dir)
     jsonfiles = [f for f in list(os.listdir()) if '.json' in f]  # considers all processed files
-
-    for jsonfile in jsonfiles[1:]:  # read each JSON binary file
+    # jsonfiles = ['ongoing_120001_140000.json', 'ongoing_1_20000.json']
+    for jsonfile in jsonfiles:  # read each JSON binary file
         print('_' * 100)
         print(f'Generating key phrases for {jsonfile} ...')
         start = time.time()
