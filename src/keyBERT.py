@@ -86,6 +86,7 @@ def key_phraser(doc: list, model) -> dict:
 def main(argv):
 
     root_dir = os.path.join(os.getcwd(), '../data')
+    preprocessing(root_dir)
     # make a new 'key_phrases' directory if does not exists
     key_phrase_dir = os.path.join(root_dir, 'key_phrases')
     if not os.path.isdir(key_phrase_dir):
@@ -103,7 +104,7 @@ def main(argv):
             my_dict = pickle.load(fp)
 
         doc_ids, docs = list(my_dict.keys()), list(my_dict.values())
-        docs_batch = torch.utils.data.DataLoader(dataset=docs, batch_size=64,
+        docs_batch = torch.utils.data.DataLoader(dataset=docs, batch_size=512,
                                                  num_workers=multiprocessing.cpu_count())
 
         try:
