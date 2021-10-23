@@ -2,13 +2,15 @@ import os
 import re
 import time
 import pickle
+import torch
 from absl import app
 from absl import flags
 import multiprocessing
+import warnings
+warnings.filterwarnings("ignore")
 
 from keybert import KeyBERT
 from sentence_transformers import SentenceTransformer
-
 
 FLAGS = flags.FLAGS
 flags.DEFINE_enum('diversification', 'mmr', ['mmr', 'mms'], "Candidate keyphrase diversification metric")  # set to False if extraction not required
@@ -27,6 +29,11 @@ def regex(text):
 
 
 def preprocessing(root_dir):
+    '''
+    Text preprocessing using regular expressions
+    :param root_dir: base directory for the project
+    :return: None; dumps the cleaned text in processed_dir
+    '''
 
     raw_dir = os.path.join(root_dir, 'raw')
     # create a processed directory
@@ -54,18 +61,19 @@ def preprocessing(root_dir):
         with open(os.path.join(processed_dir, dir), 'wb') as fp:
             pickle.dump(my_dict, fp)
 
-def key_phraser(content: tuple) -> dict:
+def key_phraser(doc: list, model) -> dict:
+    '''
+    Extracts key phrases for the batch data and model passed
+    :param doc: batch of text documents
+    :param model: Sentence Transformer model
+    :return: batch of key-phrases/concepts
+    '''
 
-    doc_id, doc = content[0], content[1]
     n_grams = (1, 2)
     nr_candidates = 30
     top_n = 30
     diversity = 0.5
     diversification = 'mmr'
-    model_name = 'all-MiniLM-L12-v2'
-
-    sentence_model = SentenceTransformer(model_name)
-    model = KeyBERT(model=sentence_model)  # based on tradeoff b/w metrics (in https://www.sbert.net/docs/pretrained_models.html) and speed
 
     if diversification == 'mss':  # max-sum-similarity
         candidates = model.extract_keywords(doc, keyphrase_ngram_range=n_grams, stop_words='english',
@@ -73,11 +81,7 @@ def key_phraser(content: tuple) -> dict:
     elif diversification == 'mmr':  # maximum-marginal-relevance
         candidates = model.extract_keywords(doc, keyphrase_ngram_range=n_grams, stop_words='english',
                                             use_mmr=True, nr_candidates=nr_candidates, top_n=top_n, diversity=diversity)
-    candidates = {doc[1]: doc[0] for doc in candidates}
-    candidates = sorted(candidates.items(), reverse=True)
-    candidates = {doc[1]: doc[0] for doc in candidates}
-
-    return doc_id, candidates
+    return candidates
 
 def main(argv):
 
@@ -91,27 +95,40 @@ def main(argv):
     os.chdir(processed_dir)
     jsonfiles = [f for f in list(os.listdir()) if '.json' in f]  # considers all processed files
 
-    for jsonfile in jsonfiles:  # read each JSON binary file
+    for jsonfile in jsonfiles[1:]:  # read each JSON binary file
         print('_' * 100)
         print(f'Generating key phrases for {jsonfile} ...')
         start = time.time()
         with open(os.path.join(processed_dir, jsonfile), 'rb') as fp:
             my_dict = pickle.load(fp)
 
-        content_list = [(key, value) for key, value in my_dict.items()]
-        # utilize all the cores for faster processing
-        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-        data = pool.map(key_phraser, content_list)
-        pool.close()
-        pool.join()
-        print('Time:', time.time() - start)
+        doc_ids, docs = list(my_dict.keys()), list(my_dict.values())
+        docs_batch = torch.utils.data.DataLoader(dataset=docs, batch_size=64,
+                                                 num_workers=multiprocessing.cpu_count())
 
-        # dictionary data structure saves memory
-        my_dict = {doc[0]: doc[1] for doc in data}
-        with open(os.path.join(key_phrase_dir, jsonfile), 'wb') as fp:  # pickle as binary object
-            pickle.dump(my_dict, fp)
-        print(f'Key phrases saved for {jsonfile} successfully')
+        try:
+            candidates = []
+            # create a model instance
+            model_name = FLAGS.model_name
+            sentence_model = SentenceTransformer(model_name)
+            model = KeyBERT(model=sentence_model)  # based on tradeoff b/w metrics (in https://www.sbert.net/docs/pretrained_models.html) and speed
+            # forward (batch processing)
+            for batch_id, doc in enumerate(docs_batch):
+                candidates.append(key_phraser(doc, model))
+                print(f'Batch: {batch_id + 1}')
 
+            print('Time:', time.time() - start)
+            # dictionary data structure saves memory
+            candidates_flatten = [elem for candidate in candidates for elem in candidate]
+            candidates_flatten = [dict(sorted({elem[1]: elem[0] for elem in candidate}.items(), reverse=True)) for candidate in candidates_flatten]
+            my_dict = [dict(zip(cf.values(), cf.keys())) for cf in candidates_flatten]  # reverse the keys and values
+
+            # save key phrases in a new directory
+            with open(os.path.join(key_phrase_dir, jsonfile), 'wb') as fp:  # pickle as binary object
+                pickle.dump(my_dict, fp)
+            print(f'Key phrases saved for {jsonfile} successfully')
+        except ValueError as ve:  # a single file doe not have any textual content upon parsing
+            print(ve)
 
 if __name__ == '__main__':
     app.run(main)
