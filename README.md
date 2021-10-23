@@ -1,4 +1,4 @@
-# Key-Phrase-Extractor
+# Keyphrase Extractor with BERT Embedding Models
 
 ## Introduction
 One way of understanding and speeding up the consumption of unstructured text by end-users is to automatically extract
