@@ -47,7 +47,7 @@ def main(argv):
     if FLAGS.extract:
         extract_zips()
 
-    directories = [f for f in list(os.listdir()) if '.' not in f]  # considers directories unzipped
+    directories = [f for f in list(os.listdir()) if '.' not in f]  # considers only unzipped directories
 
     # make a new 'raw' directory if does not exists
     raw_dir = os.path.join(root_dir, 'raw')
@@ -56,6 +56,7 @@ def main(argv):
 
     for dir in directories:  # iterate on each directory
         os.chdir(os.path.join(root_dir, 'patents', dir))
+        print('_' * 100)
         print(f'Parsing {dir} ...')
         start = time.time()
         xml_list = os.listdir()
