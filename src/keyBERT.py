@@ -95,7 +95,7 @@ def main(argv):
     processed_dir = os.path.join(root_dir, 'processed')
     os.chdir(processed_dir)
     jsonfiles = [f for f in list(os.listdir()) if '.json' in f]  # considers all processed files
-    # jsonfiles = ['ongoing_120001_140000.json', 'ongoing_1_20000.json']
+    jsonfiles = ['ongoing_100001_120000.json', 'ongoing_140001_160000.json']
     for jsonfile in jsonfiles:  # read each JSON binary file
         print('_' * 100)
         print(f'Generating key phrases for {jsonfile} ...')
@@ -104,7 +104,7 @@ def main(argv):
             my_dict = pickle.load(fp)
 
         doc_ids, docs = list(my_dict.keys()), list(my_dict.values())
-        docs_batch = torch.utils.data.DataLoader(dataset=docs, batch_size=512,
+        docs_batch = torch.utils.data.DataLoader(dataset=docs, batch_size=2048,
                                                  num_workers=multiprocessing.cpu_count())
 
         try:
